@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    SUPERADMIN_LOGIN: str
+    SUPERADMIN_PASSWORD: str
+    SUPERADMIN_FULL_NAME: str = "Super Admin"
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:5174"]
     model_config = SettingsConfigDict(env_file=".env")
 
 

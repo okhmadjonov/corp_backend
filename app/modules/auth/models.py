@@ -21,7 +21,7 @@ class User(BaseModel):
     full_name: Mapped[str] = mapped_column(String(150))
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
 
-    role: Mapped["Role"] = relationship()
+    role: Mapped["Role"] = relationship(foreign_keys="User.role_id")
 
 
 class RefreshToken(Base):

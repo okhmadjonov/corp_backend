@@ -9,6 +9,11 @@ from app.core.config import settings
 from app.modules.auth import models as auth_models  # noqa: F401
 from app.modules.categories import models as categories_models  # noqa: F401
 from app.modules.clothes import models as clothes_models  # noqa: F401
+from app.modules.patterns import models as patterns_models  # noqa: F401
+from app.modules.favorites import models as favorites_models  # noqa: F401
+
+
+
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
