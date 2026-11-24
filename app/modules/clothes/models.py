@@ -9,7 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base, BaseModel
 if TYPE_CHECKING:
     from app.modules.categories.models import Gender, Season, Tag
-    
+    from app.modules.patterns.models import Pattern
+
 clothes_tags = Table(
     "clothes_tags",
     Base.metadata,
@@ -40,6 +41,9 @@ class Clothes(BaseModel):
     variants: Mapped[list["ClothingVariant"]] = relationship(back_populates="clothes")
     images: Mapped[list["ClothesImage"]] = relationship(back_populates="clothes")
     tags: Mapped[list["Tag"]] = relationship(secondary=clothes_tags)
+    patterns: Mapped[list["Pattern"]] = relationship(
+        secondary="clothes_patterns", back_populates="clothes"
+    )
 
 
 class ClothingVariant(BaseModel):

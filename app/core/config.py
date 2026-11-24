@@ -12,6 +12,13 @@ class Settings(BaseSettings):
     SUPERADMIN_PASSWORD: str
     SUPERADMIN_FULL_NAME: str = "Super Admin"
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:5174"]
+
+
+    UPLOAD_DIR: str = "uploads"
+    MAX_IMAGE_MB: int = 5
+    MAX_PDF_MB: int = 20
+
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

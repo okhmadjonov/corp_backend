@@ -29,3 +29,5 @@ def require_roles(*roles: str):
         return user
 
     return checker
+
+admin_only = require_roles("super_admin", "operator")    

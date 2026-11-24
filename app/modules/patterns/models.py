@@ -49,7 +49,9 @@ class Pattern(BaseModel):
     season: Mapped["Season"] = relationship()
     files: Mapped[list["PatternFile"]] = relationship(back_populates="pattern")
     tags: Mapped[list["Tag"]] = relationship(secondary=patterns_tags)
-    clothes: Mapped[list["Clothes"]] = relationship(secondary=clothes_patterns)
+    clothes: Mapped[list["Clothes"]] = relationship(
+        secondary=clothes_patterns, back_populates="patterns"
+    )
 
 
 class PatternFile(BaseModel):
