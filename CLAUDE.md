@@ -19,21 +19,26 @@ Modullar: auth, categories (Gender, Season, Tag), clothes, patterns, favorites, 
 - Soft delete hamma joyda; ro'yxatlarda doim is_deleted=false filtri
 - Rollar: super_admin, operator, user. Ro'yxatdan o'tish: faqat login + parol, rol `user`
 - Mehmon faqat ro'yxatlarni ko'radi; detail sahifa uchun login kerak (views_count atomik oshadi)
-- Rasmlar /media orqali ochiq; PDF fayllar private (serve qilinmaydi)
+- Rasmlar /media orqali ochiq (+ /media/thumbs/ WEBP nusxa, `thumb_url`); PDF private, faqat admin `.../files/{id}/content` orqali
+- Rasm/fayl `url` faqat /admin/uploads bergan formatda qabul qilinadi (`IMAGE_URL_RE`, `PDF_URL_RE`)
 - Auth: access token 15 daq + refresh token (DB'da hash, rotation)
 - Migratsiya: `alembic revision --autogenerate -m "..."`, keyin `alembic upgrade head`
 - Seed: `python -m app.seed`
 - Yetim fayllarni tozalash: `python -m app.cleanup_uploads` (ko'rish), `--delete` (o'chirish)
+- Unique: `unique=True` emas, `__table_args__ = (unique_alive("jadval", "ustun"),)`; "band" tekshiruvida `is_deleted=false`
+- Ota-yozuv o'chirilsa bolalari ham: `soft_delete_children()`; ishlatilayotgan kategoriya o'chirilmaydi (409)
+- Testlar: `pytest` (alohida `<db>_test` bazada); yangi funksiyaga test yozilsin
 - Qidiruv (ILIKE) doim `like_pattern(q)` + `escape="\\"` orqali; ro'yxatlar `app.core.schemas.Page` qaytaradi
 
 ## Muloqot
 - Javoblar o'zbek tilida, qadamma-qadam, qisqa
 - Foydalanuvchi: Windows, Git Bash, VS Code uslubi
 
-## Ma'lum kamchiliklar (hal qilinmoqda)
-1. ~~UNIQUE ustunlar o'chirilgan qatorlarda band turadi~~ — HAL QILINDI: `unique_alive()` (app/core/base.py) partial unique index. Yangi modelda `unique=True` emas, `__table_args__ = (unique_alive("jadval", "ustun"),)` ishlating; "band" tekshiruvlarida ham `is_deleted=false` filtri bo'lsin
-2. Ishlatilayotgan jins/fasl/tegni o'chirib bo'ladi -> 409 bilan bloklash
-3. Rasm thumbnail'lari yo'q (ro'yxat sekinlashadi) -> Pillow bilan kichik nusxa
-4. Admin'da private PDF'ni ko'rish yo'q
-5. Testlar va README yo'q
+## Bog'liq loyihalar
+corp_backend, corp_admin, corp_front — 3 alohida git repo, lekin bitta tizim.
+API javob/so'rov formati o'zgarsa, admin va front ham shu ishda moslashtiriladi; har biri o'z repo'siga commit/push.
+`client.ts`, `tokenStorage.ts`, `errors.ts` ikkala frontda nusxa — birini tuzatsangiz, ikkinchisini ham.
+
+## Ma'lum kamchiliklar
+Hozircha yo'q (partial unique, 409 bloklash, thumbnail, admin PDF, testlar/README — hal qilingan).
 Deploy hozircha kerak emas.

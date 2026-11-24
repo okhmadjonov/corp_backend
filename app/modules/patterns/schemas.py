@@ -2,8 +2,11 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator,
+)
 
+from app.core.storage import IMAGE_URL_RE, PDF_URL_RE, thumb_url
 from app.modules.categories.schemas import NameOut, TagOut
 
 
@@ -27,11 +30,36 @@ class FileIn(BaseModel):
     sort_order: int = 0
     is_main: bool = False
 
+    @model_validator(mode="after")
+    def _consistent(self):
+        # preview = ochiq rasm, download = yopiq PDF; URL /admin/uploads'dan kelgan bo'lsin
+        if self.kind == "preview" and not (
+            self.file_type == "image" and IMAGE_URL_RE.match(self.url)
+        ):
+            raise ValueError("Preview faqat yuklangan rasm bo'lishi mumkin")
+        if self.kind == "download" and not (
+            self.file_type == "pdf" and PDF_URL_RE.match(self.url)
+        ):
+            raise ValueError("Yuklab olinadigan fayl faqat yuklangan PDF bo'lishi mumkin")
+        if self.kind == "download" and self.is_main:
+            raise ValueError("PDF asosiy rasm bo'la olmaydi")
+        return self
 
-class FileOut(FileIn):
+
+class FileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    url: str
+    kind: Literal["preview", "download"]
+    file_type: Literal["image", "pdf"]
+    sort_order: int
+    is_main: bool
+
+    @computed_field
+    @property
+    def thumb_url(self) -> str | None:
+        return thumb_url(self.url) if self.file_type == "image" else None
 
 
 class ClothesBrief(BaseModel):

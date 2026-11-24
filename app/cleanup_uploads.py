@@ -14,7 +14,7 @@ import time
 from sqlalchemy import select
 
 from app.core.database import SessionLocal
-from app.core.storage import PRIVATE_DIR, PUBLIC_DIR
+from app.core.storage import PRIVATE_DIR, PUBLIC_DIR, THUMBS_DIR
 # relationship'lar to'g'ri ulanishi uchun barcha modellar yuklanadi
 from app.modules.auth import models as _auth  # noqa: F401
 from app.modules.categories import models as _categories  # noqa: F401
@@ -47,6 +47,7 @@ def main(delete: bool) -> None:
         print(p)
         if delete:
             p.unlink()
+            (THUMBS_DIR / f"{p.stem}.webp").unlink(missing_ok=True)
 
     action = "o'chirildi" if delete else "topildi (o'chirish uchun --delete)"
     print(f"{len(orphans)} ta fayl, {total / 1024 / 1024:.1f} MB {action}")

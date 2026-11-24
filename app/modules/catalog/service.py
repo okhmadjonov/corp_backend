@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.storage import thumb_url
 from app.core.utils import like_pattern
 from app.modules.categories.models import Tag
 from app.modules.clothes.models import Clothes
@@ -41,6 +42,7 @@ def _clothes_card(c: Clothes) -> dict:
         "id": c.id, "name": c.name, "slug": c.slug, "brand": c.brand,
         "views_count": c.views_count, "gender": c.gender, "season": c.season,
         "main_image": images[0].url if images else None,
+        "main_thumb": thumb_url(images[0].url) if images else None,
         "min_price": min(prices) if prices else None,
     }
 
@@ -53,6 +55,7 @@ def _pattern_card(p: Pattern) -> dict:
         "views_count": p.views_count, "price": p.price,
         "gender": p.gender, "season": p.season,
         "preview_image": previews[0].url if previews else None,
+        "preview_thumb": thumb_url(previews[0].url) if previews else None,
     }
 
 

@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.storage import private_path
 from app.core.schemas import Page
 from app.modules.auth.dependencies import admin_only
 from app.modules.patterns import service
@@ -59,6 +61,23 @@ def update_file(
     user=Depends(admin_only),
 ):
     return service.update_file(db, user, pattern_id, file_id, data)
+
+
+@router.get("/{pattern_id}/files/{file_id}/content", response_class=FileResponse)
+def file_content(
+    pattern_id: int, file_id: int, db: Session = Depends(get_db), user=Depends(admin_only)
+):
+    """Yopiq PDF'ni faqat admin/operator ko'radi (brauzerda ochiladi)."""
+    f = service.get_file(db, pattern_id, file_id)
+    if f.file_type != "pdf":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Rasmlar /media orqali ochiq")
+    return FileResponse(
+        private_path(f.url),
+        media_type="application/pdf",
+        content_disposition_type="inline",
+        filename=f"pattern-{pattern_id}-{file_id}.pdf",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.delete("/{pattern_id}/files/{file_id}", status_code=status.HTTP_204_NO_CONTENT)

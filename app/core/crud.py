@@ -2,7 +2,7 @@ from app.core.utils import slugify
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -53,6 +53,26 @@ def soft_delete_item(db: Session, model, item_id: int, user) -> None:
     _commit(db)
 
 commit_or_409 = _commit
+
+
+def flush_or_409(db: Session) -> None:
+    """flush ham UNIQUE xatosini berishi mumkin (masalan, takroriy SKU) -> 409."""
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bunday qiymat allaqachon mavjud")
+
+
+def soft_delete_children(db: Session, fk_column, parent_id: int, user) -> None:
+    """Ota-yozuv o'chirilganda bolalarini ham soft-delete qiladi
+    (aks holda masalan SKU o'chirilgan kiyimning variantida band qolib ketadi)."""
+    model = fk_column.class_
+    db.execute(
+        update(model)
+        .where(fk_column == parent_id, model.is_deleted.is_(False))
+        .values(is_deleted=True, deleted_at=datetime.now(timezone.utc), deleted_by=user.id)
+    )
 
 
 def unique_slug(db: Session, model, text: str) -> str:

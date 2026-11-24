@@ -1,3 +1,5 @@
+import mimetypes
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +13,9 @@ from app.modules.patterns.router import router as patterns_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.favorites.router import router as favorites_router
 from app.modules.users.router import router as users_router
+
+# Windows reestrida .webp bo'lmasligi mumkin -> application/octet-stream qaytib qoladi
+mimetypes.add_type("image/webp", ".webp")
 
 app = FastAPI(title="Corp Backend")
 

@@ -1,8 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
+from app.core.storage import IMAGE_URL_RE, thumb_url
 from app.modules.categories.schemas import NameOut, TagOut
 
 
@@ -37,11 +38,26 @@ class ImageIn(BaseModel):
     sort_order: int = 0
     is_main: bool = False
 
+    @field_validator("url")
+    @classmethod
+    def _uploaded_image(cls, v: str) -> str:
+        if not IMAGE_URL_RE.match(v):
+            raise ValueError("Rasm /admin/uploads orqali yuklangan bo'lishi kerak")
+        return v
 
-class ImageOut(ImageIn):
+
+class ImageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    url: str
+    sort_order: int
+    is_main: bool
+
+    @computed_field
+    @property
+    def thumb_url(self) -> str | None:
+        return thumb_url(self.url)
 
 
 class PatternBrief(BaseModel):

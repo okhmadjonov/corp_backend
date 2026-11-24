@@ -8,11 +8,13 @@ from app.core.crud import (
     alive_by_ids as _alive_by_ids,
     check_exists as _check_exists,
     commit_or_409,
+    flush_or_409,
+    soft_delete_children,
     unique_slug,
 )
 from app.core.utils import like_pattern
 from app.modules.categories.models import Gender, Season, Tag
-from app.modules.clothes.models import Clothes, ClothesImage
+from app.modules.clothes.models import Clothes, ClothesImage, ClothingVariant
 from app.modules.clothes.schemas import ClothesIn
 from app.modules.patterns.models import Pattern
 
@@ -84,6 +86,8 @@ def delete_clothes(db: Session, user, clothes_id: int) -> None:
     item.is_deleted = True
     item.deleted_at = datetime.now(timezone.utc)
     item.deleted_by = user.id
+    soft_delete_children(db, ClothingVariant.clothes_id, clothes_id, user)
+    soft_delete_children(db, ClothesImage.clothes_id, clothes_id, user)
     commit_or_409(db)
 
 
@@ -109,7 +113,7 @@ def add_child(db: Session, user, clothes_id: int, model, data):
     values = data.model_dump()
     child = model(clothes_id=clothes_id, created_by=user.id, **values)
     db.add(child)
-    db.flush()
+    flush_or_409(db)
     if values.get("is_main"):
         _keep_single_main(db, clothes_id, child.id)
     commit_or_409(db)

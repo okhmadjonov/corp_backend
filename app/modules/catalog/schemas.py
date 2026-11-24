@@ -16,6 +16,7 @@ class ClothesCard(BaseModel):
     gender: NameOut
     season: NameOut
     main_image: str | None
+    main_thumb: str | None
     min_price: Decimal | None
 
 
@@ -29,6 +30,7 @@ class PatternCard(BaseModel):
     gender: NameOut
     season: NameOut
     preview_image: str | None
+    preview_thumb: str | None
 
 
 class ClothesDetail(ClothesOut):
