@@ -1,12 +1,24 @@
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated
 
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+
+
+def _bcrypt_limit(value: str) -> str:
+    # bcrypt 72 BAYTdan uzun parolni qabul qilmaydi (ʻ, ў kabi harflar 2-3 bayt)
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Parol juda uzun (72 baytdan oshmasin)")
+    return value
+
+
+Password = Annotated[str, Field(min_length=6, max_length=72), AfterValidator(_bcrypt_limit)]
 
 
 class RegisterRequest(BaseModel):
     login: str = Field(min_length=3, max_length=100)
-    password: str = Field(min_length=6, max_length=72)
+    password: Password
     full_name: str = Field(min_length=2, max_length=150)
-    
+
+
 class LoginRequest(BaseModel):
     login: str
     password: str

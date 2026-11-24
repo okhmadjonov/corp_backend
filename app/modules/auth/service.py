@@ -1,19 +1,23 @@
 from datetime import datetime, timedelta, timezone
-from app.core.security import hash_password
-from app.modules.auth.models import Role
-from app.modules.auth.schemas import RegisterRequest
-from sqlalchemy import select
+
+from sqlalchemy import delete, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
     generate_refresh_token,
+    hash_password,
     hash_token,
     verify_password,
 )
-from app.modules.auth.models import RefreshToken, User
-from app.modules.auth.schemas import TokenResponse
+from app.modules.auth.models import RefreshToken, Role, User
+from app.modules.auth.schemas import RegisterRequest, TokenResponse
+
+# Bir nechta tab bir vaqtda refresh qilsa, eski token shu vaqt ichida
+# qayta kelishi normal holat — o'g'irlik deb hisoblanmaydi.
+REUSE_GRACE = timedelta(seconds=30)
 
 
 def authenticate(db: Session, login: str, password: str) -> User | None:
@@ -23,16 +27,33 @@ def authenticate(db: Session, login: str, password: str) -> User | None:
     return user
 
 
+def _cleanup_expired(db: Session, user_id: int, now: datetime) -> None:
+    db.execute(
+        delete(RefreshToken).where(
+            RefreshToken.user_id == user_id, RefreshToken.expires_at <= now
+        )
+    )
+
+
+def revoke_all_tokens(db: Session, user_id: int) -> None:
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(timezone.utc))
+    )
+
+
 def issue_tokens(
     db: Session, user: User, user_agent: str | None, ip: str | None
 ) -> TokenResponse:
+    now = datetime.now(timezone.utc)
+    _cleanup_expired(db, user.id, now)
     raw_refresh = generate_refresh_token()
     db.add(
         RefreshToken(
             user_id=user.id,
             token_hash=hash_token(raw_refresh),
-            expires_at=datetime.now(timezone.utc)
-            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            expires_at=now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             user_agent=(user_agent or "")[:255] or None,
             ip=ip,
         )
@@ -51,7 +72,14 @@ def refresh_tokens(
         select(RefreshToken).where(RefreshToken.token_hash == hash_token(raw_refresh))
     )
     now = datetime.now(timezone.utc)
-    if not token or token.revoked_at or token.expires_at <= now:
+    if not token or token.expires_at <= now:
+        return None
+    if token.revoked_at:
+        # Bekor qilingan token qayta ishlatildi -> ehtimol o'g'irlangan.
+        # Xavfsizlik uchun foydalanuvchining barcha sessiyalari yopiladi.
+        if now - token.revoked_at > REUSE_GRACE:
+            revoke_all_tokens(db, token.user_id)
+            db.commit()
         return None
     user = db.get(User, token.user_id)
     if not user or user.is_deleted:
@@ -68,10 +96,12 @@ def revoke_token(db: Session, raw_refresh: str) -> None:
         token.revoked_at = datetime.now(timezone.utc)
         db.commit()
 
+
 def register_user(db: Session, data: RegisterRequest) -> User | None:
-    if db.scalar(select(User).where(User.login == data.login)):
-        return None  # login band
-    role = db.scalar(select(Role).where(Role.name == "user"))
+    """Login band bo'lsa None qaytaradi."""
+    if db.scalar(select(User.id).where(User.login == data.login, User.is_deleted.is_(False))):
+        return None
+    role = db.scalar(select(Role).where(Role.name == "user", Role.is_deleted.is_(False)))
     user = User(
         login=data.login,
         password_hash=hash_password(data.password),
@@ -79,6 +109,10 @@ def register_user(db: Session, data: RegisterRequest) -> User | None:
         role_id=role.id,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # bir vaqtda ikki so'rov bir xil login bilan kelsa
+        db.rollback()
+        return None
     db.refresh(user)
-    return user        
+    return user

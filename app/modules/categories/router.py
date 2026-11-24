@@ -5,12 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.core import crud
 from app.core.database import get_db
-from app.core.utils import slugify
-from app.modules.auth.dependencies import require_roles
+from app.modules.auth.dependencies import admin_only
 from app.modules.categories.models import Gender, Season, Tag
 from app.modules.categories.schemas import NameIn, NameOut, TagOut
 
-admin_only = require_roles("super_admin", "operator")
+
+def _dump(db: Session, data) -> dict:
+    return data.model_dump()
 
 
 def make_crud_router(
@@ -18,7 +19,8 @@ def make_crud_router(
     model,
     schema_in,
     schema_out,
-    prepare: Callable = lambda d: d.model_dump(),
+    prepare_create: Callable[[Session, object], dict] = _dump,
+    prepare_update: Callable[[Session, object], dict] = _dump,
 ) -> APIRouter:
     router = APIRouter(prefix=prefix, tags=[prefix.strip("/")])
 
@@ -32,13 +34,13 @@ def make_crud_router(
 
     @router.post("", response_model=schema_out, status_code=status.HTTP_201_CREATED)
     def create(data: schema_in, db: Session = Depends(get_db), user=Depends(admin_only)):
-        return crud.create_item(db, model, user, prepare(data))
+        return crud.create_item(db, model, user, prepare_create(db, data))
 
     @router.put("/{item_id}", response_model=schema_out)
     def update(
         item_id: int, data: schema_in, db: Session = Depends(get_db), user=Depends(admin_only)
     ):
-        return crud.update_item(db, model, item_id, user, prepare(data))
+        return crud.update_item(db, model, item_id, user, prepare_update(db, data))
 
     @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
     def delete(item_id: int, db: Session = Depends(get_db), user=Depends(admin_only)):
@@ -56,6 +58,8 @@ router.include_router(
         Tag,
         NameIn,
         TagOut,
-        prepare=lambda d: {"name": d.name, "slug": slugify(d.name)},
+        # slug faqat yaratishda beriladi: nom o'zgarsa ham ?tag=... havolalari buzilmaydi
+        prepare_create=lambda db, d: {"name": d.name, "slug": crud.unique_slug(db, Tag, d.name)},
+        prepare_update=lambda db, d: {"name": d.name},
     )
 )

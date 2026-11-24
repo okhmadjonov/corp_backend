@@ -10,14 +10,25 @@ from app.modules.patterns.models import Pattern
 
 
 def favorite_ids(db: Session, user) -> dict:
+    # o'chirilgan yoki nofaol mahsulotlar ID'lari qaytarilmaydi
     return {
         "clothes_ids": list(db.scalars(
             select(favorite_clothes.c.clothes_id)
-            .where(favorite_clothes.c.user_id == user.id)
+            .join(Clothes, Clothes.id == favorite_clothes.c.clothes_id)
+            .where(
+                favorite_clothes.c.user_id == user.id,
+                Clothes.is_deleted.is_(False),
+                Clothes.is_active.is_(True),
+            )
         )),
         "pattern_ids": list(db.scalars(
             select(favorite_patterns.c.pattern_id)
-            .where(favorite_patterns.c.user_id == user.id)
+            .join(Pattern, Pattern.id == favorite_patterns.c.pattern_id)
+            .where(
+                favorite_patterns.c.user_id == user.id,
+                Pattern.is_deleted.is_(False),
+                Pattern.is_active.is_(True),
+            )
         )),
     }
 

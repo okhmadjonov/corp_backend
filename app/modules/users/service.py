@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.crud import commit_or_409
 from app.core.security import hash_password
-from app.modules.auth.models import RefreshToken, Role, User
+from app.core.utils import like_pattern
+from app.modules.auth.models import Role, User
+from app.modules.auth.service import revoke_all_tokens
 from app.modules.users.schemas import PasswordReset, UserCreate, UserUpdate
 
 
@@ -37,18 +39,13 @@ def _super_admin_count(db: Session) -> int:
     )
 
 
-def _revoke_all_tokens(db: Session, user_id: int) -> None:
-    db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=datetime.now(timezone.utc))
-    )
-
-
 def list_users(db: Session, role: str | None, q: str | None, limit: int, offset: int) -> dict:
     conds = [User.is_deleted.is_(False)]
     if q:
-        conds.append(User.login.ilike(f"%{q}%") | User.full_name.ilike(f"%{q}%"))
+        pattern = like_pattern(q)
+        conds.append(
+            User.login.ilike(pattern, escape="\\") | User.full_name.ilike(pattern, escape="\\")
+        )
 
     base = select(User).join(Role, User.role_id == Role.id).where(*conds)
     count = select(func.count()).select_from(User).join(Role, User.role_id == Role.id).where(*conds)
@@ -65,7 +62,7 @@ def list_users(db: Session, role: str | None, q: str | None, limit: int, offset:
 
 
 def create_user(db: Session, actor: User, data: UserCreate) -> User:
-    if db.scalar(select(User.id).where(User.login == data.login)):
+    if db.scalar(select(User.id).where(User.login == data.login, User.is_deleted.is_(False))):
         raise HTTPException(status.HTTP_409_CONFLICT, "Bu login band")
     user = User(
         login=data.login,
@@ -97,7 +94,7 @@ def reset_password(db: Session, actor: User, user_id: int, data: PasswordReset) 
     user = get_user(db, user_id)
     user.password_hash = hash_password(data.password)
     user.updated_by = actor.id
-    _revoke_all_tokens(db, user.id)  # eski sessiyalar tugatiladi
+    revoke_all_tokens(db, user.id)  # eski sessiyalar tugatiladi
     commit_or_409(db)
 
 
@@ -110,5 +107,5 @@ def delete_user(db: Session, actor: User, user_id: int) -> None:
     user.is_deleted = True
     user.deleted_at = datetime.now(timezone.utc)
     user.deleted_by = actor.id
-    _revoke_all_tokens(db, user.id)
+    revoke_all_tokens(db, user.id)
     commit_or_409(db)

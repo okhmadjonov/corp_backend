@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.schemas import Page
 from app.modules.auth.dependencies import get_current_user
 from app.modules.catalog import service
 from app.modules.catalog.schemas import (
-    ClothesCard, ClothesDetail, Page, PatternCard, PatternDetail,
+    ClothesCard, ClothesDetail, PatternCard, PatternDetail,
 )
 
 router = APIRouter(tags=["catalog"])

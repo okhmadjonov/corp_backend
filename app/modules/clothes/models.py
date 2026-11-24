@@ -6,7 +6,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base import Base, BaseModel
+from app.core.base import Base, BaseModel, unique_alive
 if TYPE_CHECKING:
     from app.modules.categories.models import Gender, Season, Tag
     from app.modules.patterns.models import Pattern
@@ -21,9 +21,10 @@ clothes_tags = Table(
 
 class Clothes(BaseModel):
     __tablename__ = "clothes"
+    __table_args__ = (unique_alive("clothes", "slug"),)
 
     name: Mapped[str] = mapped_column(String(200))
-    slug: Mapped[str] = mapped_column(String(250), unique=True, index=True)
+    slug: Mapped[str] = mapped_column(String(250))
     description: Mapped[str | None] = mapped_column(Text)
     brand: Mapped[str | None] = mapped_column(String(100))
     material: Mapped[str | None] = mapped_column(String(100))
@@ -48,6 +49,7 @@ class Clothes(BaseModel):
 
 class ClothingVariant(BaseModel):
     __tablename__ = "clothing_variants"
+    __table_args__ = (unique_alive("clothing_variants", "sku"),)
 
     clothes_id: Mapped[int] = mapped_column(
         ForeignKey("clothes.id", ondelete="CASCADE"), index=True
@@ -58,7 +60,7 @@ class ClothingVariant(BaseModel):
     stock_quantity: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
-    sku: Mapped[str] = mapped_column(String(64), unique=True)
+    sku: Mapped[str] = mapped_column(String(64))
 
     clothes: Mapped["Clothes"] = relationship(back_populates="variants")
 

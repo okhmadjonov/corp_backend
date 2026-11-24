@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.schemas import Page
 from app.modules.auth.dependencies import admin_only
 from app.modules.clothes import service
 from app.modules.clothes.models import ClothesImage, ClothingVariant
@@ -12,7 +13,7 @@ from app.modules.clothes.schemas import (
 router = APIRouter(prefix="/admin/clothes", tags=["admin: clothes"])
 
 
-@router.get("", response_model=list[ClothesOut])
+@router.get("", response_model=Page[ClothesOut])
 def list_clothes(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),

@@ -1,20 +1,10 @@
 from decimal import Decimal
-from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.modules.categories.schemas import NameOut, TagOut
 from app.modules.clothes.schemas import ClothesOut
 from app.modules.patterns.schemas import FileOut
-
-T = TypeVar("T")
-
-
-class Page(BaseModel, Generic[T]):
-    items: list[T]
-    total: int
-    limit: int
-    offset: int
 
 
 class ClothesCard(BaseModel):

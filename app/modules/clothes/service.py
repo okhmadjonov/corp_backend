@@ -1,15 +1,20 @@
-from fastapi import HTTPException, status
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session, selectinload
-
-from app.core.crud import commit_or_409, unique_slug
 from datetime import datetime, timezone
 
+from fastapi import HTTPException, status
+from sqlalchemy import func, select, update
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.crud import (
+    alive_by_ids as _alive_by_ids,
+    check_exists as _check_exists,
+    commit_or_409,
+    unique_slug,
+)
+from app.core.utils import like_pattern
 from app.modules.categories.models import Gender, Season, Tag
-from app.modules.clothes.models import Clothes, ClothesImage, ClothingVariant
+from app.modules.clothes.models import Clothes, ClothesImage
 from app.modules.clothes.schemas import ClothesIn
 from app.modules.patterns.models import Pattern
-from app.core.crud import alive_by_ids as _alive_by_ids, check_exists as _check_exists
 
 LOAD = (
     selectinload(Clothes.gender),
@@ -23,12 +28,16 @@ LOAD = (
 
 
 
-def list_clothes(db: Session, limit: int, offset: int, q: str | None):
-    stmt = select(Clothes).where(Clothes.is_deleted.is_(False)).options(*LOAD)
+def list_clothes(db: Session, limit: int, offset: int, q: str | None) -> dict:
+    conds = [Clothes.is_deleted.is_(False)]
     if q:
-        stmt = stmt.where(Clothes.name.ilike(f"%{q}%"))
-    stmt = stmt.order_by(Clothes.id.desc()).limit(limit).offset(offset)
-    return db.scalars(stmt).all()
+        conds.append(Clothes.name.ilike(like_pattern(q), escape="\\"))
+    total = db.scalar(select(func.count()).select_from(Clothes).where(*conds))
+    rows = db.scalars(
+        select(Clothes).where(*conds).options(*LOAD)
+        .order_by(Clothes.id.desc()).limit(limit).offset(offset)
+    ).all()
+    return {"items": rows, "total": total, "limit": limit, "offset": offset}
 
 
 def get_clothes(db: Session, clothes_id: int) -> Clothes:

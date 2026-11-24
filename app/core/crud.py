@@ -58,7 +58,9 @@ commit_or_409 = _commit
 def unique_slug(db: Session, model, text: str) -> str:
     base = slugify(text) or "item"
     slug, n = base, 2
-    while db.scalar(select(model.id).where(model.slug == slug)):
+    while db.scalar(
+        select(model.id).where(model.slug == slug, model.is_deleted.is_(False))
+    ):
         slug = f"{base}-{n}"
         n += 1
     return slug    

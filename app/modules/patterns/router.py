@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.schemas import Page
 from app.modules.auth.dependencies import admin_only
 from app.modules.patterns import service
 from app.modules.patterns.schemas import FileIn, FileOut, PatternIn, PatternOut
@@ -9,7 +10,7 @@ from app.modules.patterns.schemas import FileIn, FileOut, PatternIn, PatternOut
 router = APIRouter(prefix="/admin/patterns", tags=["admin: patterns"])
 
 
-@router.get("", response_model=list[PatternOut])
+@router.get("", response_model=Page[PatternOut])
 def list_patterns(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),

@@ -15,6 +15,9 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
+    # bcrypt 5 72 baytdan uzun parolda xato tashlaydi; bunday parol baribir saqlanmagan
+    if len(plain_password.encode("utf-8")) > 72:
+        return False
     return pwd_context.verify(plain_password, password_hash)
 
 

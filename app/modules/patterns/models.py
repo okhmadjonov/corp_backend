@@ -6,7 +6,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base import Base, BaseModel
+from app.core.base import Base, BaseModel, unique_alive
 
 if TYPE_CHECKING:
     from app.modules.categories.models import Gender, Season, Tag
@@ -29,9 +29,10 @@ patterns_tags = Table(
 
 class Pattern(BaseModel):
     __tablename__ = "patterns"
+    __table_args__ = (unique_alive("patterns", "slug"),)
 
     name: Mapped[str] = mapped_column(String(200))
-    slug: Mapped[str] = mapped_column(String(250), unique=True, index=True)
+    slug: Mapped[str] = mapped_column(String(250))
     description: Mapped[str | None] = mapped_column(Text)
     brand: Mapped[str | None] = mapped_column(String(100))
     material: Mapped[str | None] = mapped_column(String(100))

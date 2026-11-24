@@ -1,7 +1,9 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, select, update
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.utils import like_pattern
+from app.modules.categories.models import Tag
 from app.modules.clothes.models import Clothes
 from app.modules.clothes.service import LOAD as CLOTHES_LOAD
 from app.modules.patterns.models import Pattern
@@ -15,9 +17,9 @@ def _filters(model, gender_id, season_id, q, tag):
     if season_id:
         conds.append(model.season_id == season_id)
     if q:
-        conds.append(model.name.ilike(f"%{q}%"))
+        conds.append(model.name.ilike(like_pattern(q), escape="\\"))
     if tag:
-        conds.append(model.tags.any(slug=tag))
+        conds.append(model.tags.any(and_(Tag.slug == tag, Tag.is_deleted.is_(False))))
     return conds
 
 

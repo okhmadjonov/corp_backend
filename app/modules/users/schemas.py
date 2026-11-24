@@ -3,14 +3,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.modules.auth.schemas import RoleOut
+from app.modules.auth.schemas import Password, RoleOut
 
 RoleName = Literal["super_admin", "operator", "user"]
 
 
 class UserCreate(BaseModel):
     login: str = Field(min_length=3, max_length=100)
-    password: str = Field(min_length=6, max_length=72)
+    password: Password
     full_name: str = Field(min_length=2, max_length=150)
     role: RoleName = "operator"
 
@@ -21,7 +21,7 @@ class UserUpdate(BaseModel):
 
 
 class PasswordReset(BaseModel):
-    password: str = Field(min_length=6, max_length=72)
+    password: Password
 
 
 class AdminUserOut(BaseModel):

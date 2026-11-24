@@ -3,20 +3,22 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base import Base, BaseModel
+from app.core.base import Base, BaseModel, unique_alive
 
 
 class Role(BaseModel):
     __tablename__ = "roles"
+    __table_args__ = (unique_alive("roles", "name"),)
 
-    name: Mapped[str] = mapped_column(String(50), unique=True)
+    name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(String(255))
 
 
 class User(BaseModel):
     __tablename__ = "users"
+    __table_args__ = (unique_alive("users", "login"),)
 
-    login: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    login: Mapped[str] = mapped_column(String(100))
     password_hash: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(150))
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))

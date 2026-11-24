@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.crud import alive_by_ids, check_exists, commit_or_409, unique_slug
+from app.core.utils import like_pattern
 from app.modules.categories.models import Gender, Season, Tag
 from app.modules.clothes.models import Clothes
 from app.modules.patterns.models import Pattern, PatternFile
@@ -19,12 +20,16 @@ LOAD = (
 )
 
 
-def list_patterns(db: Session, limit: int, offset: int, q: str | None):
-    stmt = select(Pattern).where(Pattern.is_deleted.is_(False)).options(*LOAD)
+def list_patterns(db: Session, limit: int, offset: int, q: str | None) -> dict:
+    conds = [Pattern.is_deleted.is_(False)]
     if q:
-        stmt = stmt.where(Pattern.name.ilike(f"%{q}%"))
-    stmt = stmt.order_by(Pattern.id.desc()).limit(limit).offset(offset)
-    return db.scalars(stmt).all()
+        conds.append(Pattern.name.ilike(like_pattern(q), escape="\\"))
+    total = db.scalar(select(func.count()).select_from(Pattern).where(*conds))
+    rows = db.scalars(
+        select(Pattern).where(*conds).options(*LOAD)
+        .order_by(Pattern.id.desc()).limit(limit).offset(offset)
+    ).all()
+    return {"items": rows, "total": total, "limit": limit, "offset": offset}
 
 
 def get_pattern(db: Session, pattern_id: int) -> Pattern:

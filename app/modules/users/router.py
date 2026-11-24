@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.modules.auth.dependencies import require_roles
-from app.modules.catalog.schemas import Page
+from app.core.schemas import Page
 from app.modules.users import service
 from app.modules.users.schemas import (
     AdminUserOut, PasswordReset, RoleName, UserCreate, UserUpdate,

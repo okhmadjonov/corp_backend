@@ -1,11 +1,22 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 
 class Base(DeclarativeBase):
     pass
+
+
+def unique_alive(table: str, *columns: str) -> Index:
+    """Faqat o'chirilmagan qatorlar orasida unique (partial unique index).
+    O'chirilgan yozuvning qiymati (login, slug, sku...) qayta ishlatilishi mumkin."""
+    return Index(
+        f"uq_{table}_{'_'.join(columns)}_alive",
+        *columns,
+        unique=True,
+        postgresql_where=text("is_deleted = false"),
+    )
 
 
 class BaseModel(Base):
