@@ -4,8 +4,8 @@ Onlayn kiyim do'koni: tayyor kiyimlar va kiyim patternlari (lekalo/chizma). Buyu
 
 ## Tuzilma
 - corp_backend: FastAPI + PostgreSQL + Alembic, sync SQLAlchemy 2.0 (psycopg), pip + requirements.txt
-- corp_admin: Vite + React + TypeScript + React Router + React Query + axios (port 5174)
-- corp_front: xuddi shu stack (port 5173)
+- corp_admin: Vite + React + TypeScript + React Router + React Query + axios (port 5000)
+- corp_front: xuddi shu stack (port 3000)
 - UI kutubxonasi yo'q. Faqat SCSS Modules: `import styles from "./X.module.scss"`, `className={styles.main}`
 - SCSS: `@use '@/styles/variables' as *;`, `@` alias = src
 

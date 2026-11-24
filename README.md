@@ -4,8 +4,8 @@ Onlayn kiyim katalogining API'si: tayyor kiyimlar va kiyim patternlari (andozala
 Buyurtma va to'lov yo'q — faqat katalog.
 
 Bog'liq loyihalar (alohida repolar):
-- [corp_admin](https://github.com/okhmadjonov/corp_admin) — admin panel (port 5174)
-- [corp_front](https://github.com/okhmadjonov/corp_front) — sayt (port 5173)
+- [corp_admin](https://github.com/okhmadjonov/corp_admin) — admin panel (port 5000)
+- [corp_front](https://github.com/okhmadjonov/corp_front) — sayt (port 3000)
 
 ## Texnologiyalar
 FastAPI · PostgreSQL · SQLAlchemy 2 (sync, psycopg) · Alembic · Pillow · pytest

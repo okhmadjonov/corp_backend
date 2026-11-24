@@ -128,15 +128,15 @@ def test_regular_user_cannot_login_to_admin(client, user):
 def test_foreign_origin_blocked(client, user):
     r = client.post("/auth/refresh", headers={"Origin": "https://evil.example"})
     assert r.status_code == 403
-    ok = client.post("/auth/refresh", headers={"Origin": "http://localhost:5173"})
+    ok = client.post("/auth/refresh", headers={"Origin": "http://localhost:3000"})
     assert ok.status_code == 200
 
 
 def test_cors_allows_credentials_for_frontends(client):
     r = client.options("/auth/refresh", headers={
-        "Origin": "http://localhost:5174",
+        "Origin": "http://localhost:5000",
         "Access-Control-Request-Method": "POST",
         "Access-Control-Request-Headers": "x-app",
     })
-    assert r.headers["access-control-allow-origin"] == "http://localhost:5174"
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5000"
     assert r.headers["access-control-allow-credentials"] == "true"
