@@ -24,13 +24,9 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
 class TokenResponse(BaseModel):
+    """Refresh token javobda emas — u httpOnly cookie'da keladi."""
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
 
 

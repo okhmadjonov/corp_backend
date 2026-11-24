@@ -21,7 +21,8 @@ Modullar: auth, categories (Gender, Season, Tag), clothes, patterns, favorites, 
 - Mehmon faqat ro'yxatlarni ko'radi; detail sahifa uchun login kerak (views_count atomik oshadi)
 - Rasmlar /media orqali ochiq (+ /media/thumbs/ WEBP nusxa, `thumb_url`); PDF private, faqat admin `.../files/{id}/content` orqali
 - Rasm/fayl `url` faqat /admin/uploads bergan formatda qabul qilinadi (`IMAGE_URL_RE`, `PDF_URL_RE`)
-- Auth: access token 15 daq + refresh token (DB'da hash, rotation)
+- Auth: access token 15 daq (frontda faqat xotirada) + refresh token httpOnly cookie'da (`X-App` bo'yicha `corp_admin_rt`/`corp_site_rt`, Path=/auth, DB'da hash, rotation, `rotated_at` + 30 s grace). localStorage ishlatilmaydi
+- Lokalda hamma narsa `localhost` orqali (VITE_API_URL=http://localhost:8000), 127.0.0.1 bilan aralashtirilmaydi
 - Migratsiya: `alembic revision --autogenerate -m "..."`, keyin `alembic upgrade head`
 - Seed: `python -m app.seed`
 - Yetim fayllarni tozalash: `python -m app.cleanup_uploads` (ko'rish), `--delete` (o'chirish)
@@ -37,7 +38,7 @@ Modullar: auth, categories (Gender, Season, Tag), clothes, patterns, favorites, 
 ## Bog'liq loyihalar
 corp_backend, corp_admin, corp_front — 3 alohida git repo, lekin bitta tizim.
 API javob/so'rov formati o'zgarsa, admin va front ham shu ishda moslashtiriladi; har biri o'z repo'siga commit/push.
-`client.ts`, `tokenStorage.ts`, `errors.ts` ikkala frontda nusxa — birini tuzatsangiz, ikkinchisini ham.
+`api/client.ts`, `api/session.ts`, `utils/errors.ts` ikkala frontda nusxa (farqi: `X-App`) — birini tuzatsangiz, ikkinchisini ham.
 
 ## Ma'lum kamchiliklar
 Hozircha yo'q (partial unique, 409 bloklash, thumbnail, admin PDF, testlar/README — hal qilingan).

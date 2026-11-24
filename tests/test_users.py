@@ -36,7 +36,8 @@ def test_reset_password_ends_sessions(client, admin):
     r = client.post(f"/admin/users/{me['id']}/reset-password", headers=admin,
                     json={"password": "yangi-parol"})
     assert r.status_code == 204
-    assert client.post("/auth/refresh", json={"refresh_token": t["refresh_token"]}).status_code == 401
+    # foydalanuvchining refresh cookie'si endi ishlamaydi
+    assert client.post("/auth/refresh").status_code == 401
     assert client.post("/auth/login", json={"login": "u1_user", "password": "yangi-parol"}).status_code == 200
 
 

@@ -60,6 +60,12 @@ tests/         pytest (alohida test bazasida)
 - **Mehmon** ro'yxatlarni ko'radi; batafsil sahifa uchun login kerak.
 - **Fayllar**: rasmlar `/media` orqali ochiq (+ `/media/thumbs/` da 480px WEBP nusxa);
   PDF'lar yopiq, faqat admin `GET /admin/patterns/{id}/files/{file_id}/content` orqali ko'radi.
-- **Auth**: access token 15 daqiqa; refresh token 7 kun, bazada hash, har ishlatilganda
-  almashtiriladi. Bekor qilingan token qayta kelsa (30 s dan keyin) — barcha sessiyalar yopiladi.
+- **Auth**: access token (15 daq) javobda keladi, frontend uni faqat xotirada saqlaydi.
+  Refresh token (7 kun) **httpOnly cookie**'da (`Path=/auth`, `SameSite=Lax`), bazada hash,
+  har ishlatilganda almashtiriladi. Admin va sayt `X-App: admin|site` sarlavhasi bilan
+  alohida cookie oladi (`corp_admin_rt` / `corp_site_rt`). Cookie endpoint'lari `Origin`ni
+  `CORS_ORIGINS` bilan tekshiradi (CSRF). Almashtirilgan token 30 s ichida qayta kelsa
+  (ikki tab) — faqat access token beriladi; keyinroq kelsa — barcha sessiyalar yopiladi.
+- **Lokalda** frontlar va API bir xil host'da bo'lsin: `localhost` (127.0.0.1 bilan aralashtirmang,
+  aks holda brauzer cookie'ni yubormaydi). Production (https) da `COOKIE_SECURE=true`.
 - **API javob formati** o'zgarsa, `corp_admin` va `corp_front` ham shu ishda moslashtiriladi.

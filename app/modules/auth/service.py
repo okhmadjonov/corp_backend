@@ -15,9 +15,15 @@ from app.core.security import (
 from app.modules.auth.models import RefreshToken, Role, User
 from app.modules.auth.schemas import RegisterRequest, TokenResponse
 
-# Bir nechta tab bir vaqtda refresh qilsa, eski token shu vaqt ichida
-# qayta kelishi normal holat — o'g'irlik deb hisoblanmaydi.
+# Ikki tab (yoki React StrictMode) bir vaqtda refresh qilsa, ikkinchisi eski cookie
+# bilan keladi. Shu vaqt ichida bunga o'g'irlik deb qaralmaydi: faqat access token
+# beriladi (yangi cookie'ni brauzer birinchi javobdan allaqachon olgan).
 REUSE_GRACE = timedelta(seconds=30)
+
+ADMIN_ROLES = ("super_admin", "operator")
+
+# (access token javobi, cookie'ga yoziladigan yangi refresh token yoki None)
+Issued = tuple[TokenResponse, str | None]
 
 
 def authenticate(db: Session, login: str, password: str) -> User | None:
@@ -25,6 +31,10 @@ def authenticate(db: Session, login: str, password: str) -> User | None:
     if not user or not verify_password(password, user.password_hash):
         return None
     return user
+
+
+def _access(user: User) -> TokenResponse:
+    return TokenResponse(access_token=create_access_token(user.id, user.role.name))
 
 
 def _cleanup_expired(db: Session, user_id: int, now: datetime) -> None:
@@ -43,9 +53,7 @@ def revoke_all_tokens(db: Session, user_id: int) -> None:
     )
 
 
-def issue_tokens(
-    db: Session, user: User, user_agent: str | None, ip: str | None
-) -> TokenResponse:
+def issue_tokens(db: Session, user: User, user_agent: str | None, ip: str | None) -> Issued:
     now = datetime.now(timezone.utc)
     _cleanup_expired(db, user.id, now)
     raw_refresh = generate_refresh_token()
@@ -59,32 +67,51 @@ def issue_tokens(
         )
     )
     db.commit()
-    return TokenResponse(
-        access_token=create_access_token(user.id, user.role.name),
-        refresh_token=raw_refresh,
-    )
+    return _access(user), raw_refresh
+
+
+def _active_user(db: Session, user_id: int) -> User | None:
+    user = db.get(User, user_id)
+    return user if user and not user.is_deleted else None
+
+
+def _has_active_successor(db: Session, token: RefreshToken) -> bool:
+    """Rotation'dan keyin yaratilgan token hali tirikmi (logout/parol tiklash bo'lmaganmi)."""
+    return bool(db.scalar(
+        select(RefreshToken.id).where(
+            RefreshToken.user_id == token.user_id,
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.created_at >= token.created_at,
+            RefreshToken.id != token.id,
+        ).limit(1)
+    ))
 
 
 def refresh_tokens(
     db: Session, raw_refresh: str, user_agent: str | None, ip: str | None
-) -> TokenResponse | None:
+) -> Issued | None:
     token = db.scalar(
         select(RefreshToken).where(RefreshToken.token_hash == hash_token(raw_refresh))
     )
     now = datetime.now(timezone.utc)
     if not token or token.expires_at <= now:
         return None
+
     if token.revoked_at:
-        # Bekor qilingan token qayta ishlatildi -> ehtimol o'g'irlangan.
-        # Xavfsizlik uchun foydalanuvchining barcha sessiyalari yopiladi.
-        if now - token.revoked_at > REUSE_GRACE:
-            revoke_all_tokens(db, token.user_id)
-            db.commit()
+        if not token.rotated_at:
+            return None  # logout, parol tiklash yoki o'chirish orqali bekor qilingan
+        if now - token.rotated_at <= REUSE_GRACE and _has_active_successor(db, token):
+            user = _active_user(db, token.user_id)
+            return (_access(user), None) if user else None
+        # Almashtirilgan token kechikib qayta keldi -> ehtimol o'g'irlangan.
+        revoke_all_tokens(db, token.user_id)
+        db.commit()
         return None
-    user = db.get(User, token.user_id)
-    if not user or user.is_deleted:
+
+    user = _active_user(db, token.user_id)
+    if not user:
         return None
-    token.revoked_at = now  # eski token bekor qilinadi (rotation)
+    token.revoked_at = token.rotated_at = now  # rotation
     return issue_tokens(db, user, user_agent, ip)
 
 
